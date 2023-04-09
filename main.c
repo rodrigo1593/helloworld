@@ -1,27 +1,45 @@
-#include <kernel.h>
+#include <stdio.h>
 
-int printf(const char *format, ...);
+#include <kernel.h>
+#include <sifrpc.h>
+#include <iopcontrol.h>
+#include <sbv_patches.h>
+#include <loadfile.h>
+
+int fileXioInit();
+
+extern unsigned char iomanX_irx[] __attribute__((aligned(16)));
+extern unsigned int size_iomanX_irx;
+
+extern unsigned char fileXio_irx[] __attribute__((aligned(16)));
+extern unsigned int size_fileXio_irx;
+
+
+static void reset_IOP() {
+   SifExitRpc();
+	SifInitRpc(0);
+
+	while(!SifIopReset(NULL, 0x80000000)){};
+
+	while(!SifIopSync()){};
+	SifInitRpc(0);
+	sbv_patch_enable_lmb();
+	sbv_patch_disable_prefix_check();
+}
+
+static void init_drivers() {
+   SifExecModuleBuffer(&iomanX_irx, size_iomanX_irx, 0, NULL, NULL);
+   SifExecModuleBuffer(&fileXio_irx, size_fileXio_irx, 0, NULL, NULL);
+
+   fileXioInit();
+}
 
 int main()
 {
-   while (1)
-   {
-      printf("Hello, world!\n");
-   }
-   
+   reset_IOP();
+	init_drivers();
+	printf("Hello world with fileXio loaded!\n");
+	reset_IOP();
+	printf("Hello world after reset IOP!\n");
    return 0;
 }
-
-#if defined(DUMMY_TIMEZONE)
-   void _libcglue_timezone_update() {}
-#endif
-
-#if defined(DUMMY_LIBC_INIT)
-   void _libcglue_init() {}
-   void _libcglue_deinit() {}
-   void _libcglue_args_parse() {}
-#endif
-
-#if defined(KERNEL_NOPATCH)
-    DISABLE_PATCHED_FUNCTIONS();
-#endif

@@ -7,37 +7,21 @@
 # Review ps2sdk README & LICENSE files for further details.
 
 EE_BIN = hello.elf
-
-# KERNEL_NOPATCH = 1
-# NEWLIB_NANO = 1
-
 EE_OBJS = main.o
-EE_CFLAGS += -fdata-sections -ffunction-sections
-EE_LDFLAGS += -Wl,--gc-sections
+EE_LIBS = -lfileXio -lpatches 
 
-ifeq ($(DUMMY_TIMEZONE), 1)
-   EE_CFLAGS += -DDUMMY_TIMEZONE
-endif
-
-ifeq ($(DUMMY_LIBC_INIT), 1)
-   EE_CFLAGS += -DDUMMY_LIBC_INIT
-endif
-
-ifeq ($(KERNEL_NOPATCH), 1)
-   EE_CFLAGS += -DKERNEL_NOPATCH
-endif
-
-ifeq ($(DEBUG), 1)
-  EE_CFLAGS += -DDEBUG -O0 -g
-else 
-  EE_CFLAGS += -Os
-  EE_LDFLAGS += -s
-endif
+# IRX libs
+IRX_FILES += iomanX.irx fileXio.irx
+EE_OBJS += $(IRX_FILES:.irx=_irx.o)
 
 all: $(EE_BIN)
 
 clean:
 	rm -rf $(EE_OBJS) $(EE_BIN)
+
+# IRX files
+%_irx.c:
+	$(PS2SDK)/bin/bin2c $(PS2SDK)/iop/irx/$*.irx $@ $*_irx
 
 # Include makefiles
 include $(PS2SDK)/samples/Makefile.pref
